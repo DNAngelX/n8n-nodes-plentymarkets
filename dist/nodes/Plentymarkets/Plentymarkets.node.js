@@ -176,6 +176,72 @@ class Plentymarkets {
             }
             return Object.keys(value).length > 0;
         };
+        const mergeQueryObjects = (target, additions) => {
+            const aggregated = {};
+            const pushValue = (key, value) => {
+                if (value === undefined || value === null) {
+                    return;
+                }
+                if (!aggregated[key]) {
+                    aggregated[key] = [];
+                }
+                aggregated[key].push(String(value));
+            };
+            const addFromSource = (source) => {
+                if (!source)
+                    return;
+                for (const [key, value] of Object.entries(source)) {
+                    if (Array.isArray(value)) {
+                        value.forEach((item) => pushValue(key, item));
+                    }
+                    else {
+                        pushValue(key, value);
+                    }
+                }
+            };
+            addFromSource(target);
+            addFromSource(additions);
+            const result = {};
+            for (const [key, values] of Object.entries(aggregated)) {
+                result[key] = values.length === 1 ? values[0] : values;
+            }
+            return result;
+        };
+        const bodyToQueryParams = (input) => {
+            if (Array.isArray(input)) {
+                throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'For GET requests the payload must be a JSON object.');
+            }
+            const entries = {};
+            const appendValue = (key, value) => {
+                if (value === undefined || value === null || value === '') {
+                    return;
+                }
+                if (Array.isArray(value)) {
+                    value.forEach((item) => appendValue(`${key}[]`, item));
+                    return;
+                }
+                if (typeof value === 'object') {
+                    for (const [childKey, childValue] of Object.entries(value)) {
+                        const nextKey = key ? `${key}[${childKey}]` : childKey;
+                        appendValue(nextKey, childValue);
+                    }
+                    return;
+                }
+                const stringValue = String(value);
+                if (!entries[key]) {
+                    entries[key] = [];
+                }
+                entries[key].push(stringValue);
+            };
+            for (const [key, value] of Object.entries(input)) {
+                appendValue(key, value);
+            }
+            const queryObject = {};
+            for (const [key, values] of Object.entries(entries)) {
+                queryObject[key] = values.length === 1 ? values[0] : values;
+            }
+            return queryObject;
+        };
         for (let i = 0; i < items.length; i++) {
             const resource = this.getNodeParameter('resource', i);
             let method = 'GET';
@@ -227,7 +293,13 @@ class Plentymarkets {
                             requestOptions.qs = reqQuery;
                         }
                         if (hasBodyContent(reqBody)) {
-                            requestOptions.body = reqBody;
+                            if (['GET', 'HEAD'].includes(reqMethod)) {
+                                const bodyQuery = bodyToQueryParams(reqBody);
+                                requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
+                            }
+                            else {
+                                requestOptions.body = reqBody;
+                            }
                         }
                         const json = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', requestOptions);
                         returnData.push({ json });
@@ -276,7 +348,13 @@ class Plentymarkets {
                 requestOptions.qs = queryParams;
             }
             if (hasBodyContent(body)) {
-                requestOptions.body = body;
+                if (['GET', 'HEAD'].includes(method)) {
+                    const bodyQuery = bodyToQueryParams(body);
+                    requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
+                }
+                else {
+                    requestOptions.body = body;
+                }
             }
             const json = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', requestOptions);
             returnData.push({ json });

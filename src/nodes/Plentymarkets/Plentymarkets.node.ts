@@ -190,6 +190,89 @@ export class Plentymarkets implements INodeType {
 			return Object.keys(value).length > 0;
 		};
 
+		const mergeQueryObjects = (
+			target: IDataObject | undefined,
+			additions: IDataObject,
+		): IDataObject => {
+			const aggregated: Record<string, string[]> = {};
+			const pushValue = (key: string, value: unknown) => {
+				if (value === undefined || value === null) {
+					return;
+				}
+				if (!aggregated[key]) {
+					aggregated[key] = [];
+				}
+				aggregated[key].push(String(value));
+			};
+
+			const addFromSource = (source?: IDataObject) => {
+				if (!source) return;
+				for (const [key, value] of Object.entries(source)) {
+					if (Array.isArray(value)) {
+						value.forEach((item) => pushValue(key, item));
+					} else {
+						pushValue(key, value);
+					}
+				}
+			};
+
+			addFromSource(target);
+			addFromSource(additions);
+
+			const result: IDataObject = {};
+			for (const [key, values] of Object.entries(aggregated)) {
+				result[key] = values.length === 1 ? values[0] : values;
+			}
+			return result;
+		};
+
+		const bodyToQueryParams = (input: IDataObject | IDataObject[]): IDataObject => {
+			if (Array.isArray(input)) {
+				throw new NodeOperationError(
+					this.getNode(),
+					'For GET requests the payload must be a JSON object.',
+				);
+			}
+
+			const entries: Record<string, string[]> = {};
+
+			const appendValue = (key: string, value: unknown) => {
+				if (value === undefined || value === null || value === '') {
+					return;
+				}
+
+				if (Array.isArray(value)) {
+					value.forEach((item) => appendValue(`${key}[]`, item));
+					return;
+				}
+
+				if (typeof value === 'object') {
+					for (const [childKey, childValue] of Object.entries(value as IDataObject)) {
+						const nextKey = key ? `${key}[${childKey}]` : childKey;
+						appendValue(nextKey, childValue);
+					}
+					return;
+				}
+
+				const stringValue = String(value);
+				if (!entries[key]) {
+					entries[key] = [];
+				}
+				entries[key].push(stringValue);
+			};
+
+			for (const [key, value] of Object.entries(input)) {
+				appendValue(key, value);
+			}
+
+			const queryObject: IDataObject = {};
+			for (const [key, values] of Object.entries(entries)) {
+				queryObject[key] = values.length === 1 ? values[0] : values;
+			}
+
+			return queryObject;
+		};
+
 		for (let i = 0; i < items.length; i++) {
 			const resource = this.getNodeParameter('resource', i) as string;
 			let method = 'GET';
@@ -264,7 +347,12 @@ export class Plentymarkets implements INodeType {
 						}
 
 						if (hasBodyContent(reqBody)) {
-							requestOptions.body = reqBody;
+							if (['GET', 'HEAD'].includes(reqMethod)) {
+								const bodyQuery = bodyToQueryParams(reqBody as IDataObject);
+								requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
+							} else {
+								requestOptions.body = reqBody as IDataObject;
+							}
 						}
 
 						const json = await this.helpers.httpRequestWithAuthentication.call(
@@ -322,7 +410,12 @@ export class Plentymarkets implements INodeType {
 			}
 		
 			if (hasBodyContent(body)) {
-				requestOptions.body = body;
+				if (['GET', 'HEAD'].includes(method)) {
+					const bodyQuery = bodyToQueryParams(body as IDataObject);
+					requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
+				} else {
+					requestOptions.body = body as IDataObject;
+				}
 			}
 		
 			const json = await this.helpers.httpRequestWithAuthentication.call(
