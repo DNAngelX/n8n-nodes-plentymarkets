@@ -9,6 +9,7 @@ and ad-hoc API calls without waiting for custom code changes.
 - ✅ Automatic session handling via n8n `preAuthentication` – the access token is cached and refreshed only when needed.
 - ✅ Classic *Custom Request* operation with support for sending payloads **even on GET/HEAD** calls (body → query parameters).
 - ✅ New *Request via JSON Definition* operation to paste or inject complete request descriptions, e.g.:
+- ✅ Optional *Fetch All Pages* toggle that follows PlentyONE pagination automatically and outputs the collected `entries`.
 
   ```json
   {
@@ -63,6 +64,8 @@ Configure the HTTP method and endpoint in the node UI. The “Payload / Query (J
 - For `GET`/`HEAD` requests the object is sent as query parameters.
 - For all other methods the object is sent as JSON body.
 
+Enable **Fetch All Pages** when the API response uses the PlentyONE pagination format (`page`, `isLastPage`, `entries`, …). The node will loop through pages (ignoring any provided `page` value) until `isLastPage === true`, returning each entry as a separate item. See the [PlentyONE REST documentation](https://developers.plentymarkets.com/en-gb/plentymarkets-rest-api/index.html) for details on paginated endpoints.
+
 ### Request via JSON Definition
 
 Provide a JSON object (or array of objects) with the following optional fields:
@@ -87,6 +90,8 @@ Example payload for a PUT request:
   }
 }
 ```
+
+When **Fetch All Pages** is enabled for this operation, every GET request definition in the JSON will be paginated automatically, following the same logic as the Custom Request.
 
 ## Development
 

@@ -34,6 +34,20 @@
           "type": "json",
           "default": "{}",
           "description": "Bei GET/HEAD als Query-Parameter gesendet, sonst als JSON-Body"
+        },
+        {
+          "displayName": "Fetch All Pages",
+          "name": "fetchAllPages",
+          "type": "boolean",
+          "default": false,
+          "description": "Weitere Seiten automatisch abrufen, bis die API die letzte Seite signalisiert",
+          "displayOptions": {
+            "show": {
+              "method": [
+                "GET"
+              ]
+            }
+          }
         }
       ]
     },
@@ -50,6 +64,13 @@
           "type": "json",
           "default": "{}",
           "description": "Felder: method, endpoint, body, query, headers. Optional auch ein Array mehrerer Requests."
+        },
+        {
+          "displayName": "Fetch All Pages",
+          "name": "fetchAllPages",
+          "type": "boolean",
+          "default": false,
+          "description": "GET-Requests werden automatisch paginiert, bis die letzte Seite erreicht ist."
         }
       ]
     }

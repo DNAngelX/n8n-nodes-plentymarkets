@@ -242,21 +242,141 @@ class Plentymarkets {
             }
             return queryObject;
         };
+        const toDataObject = (value) => typeof value === 'object' && value !== null
+            ? value
+            : { value: String(value ?? '') };
+        const coerceNumber = (value) => {
+            if (value === null || value === undefined) {
+                return undefined;
+            }
+            const candidate = Array.isArray(value) ? value[0] : value;
+            const num = Number(candidate);
+            return Number.isFinite(num) ? num : undefined;
+        };
+        const coerceBoolean = (value) => {
+            if (value === null || value === undefined) {
+                return undefined;
+            }
+            if (typeof value === 'boolean') {
+                return value;
+            }
+            if (typeof value === 'number') {
+                return value !== 0;
+            }
+            if (typeof value === 'string') {
+                const normalized = value.toLowerCase();
+                if (['true', '1', 'yes', 'y'].includes(normalized))
+                    return true;
+                if (['false', '0', 'no', 'n'].includes(normalized))
+                    return false;
+            }
+            return undefined;
+        };
+        const extractPageFromQuery = (qs) => {
+            if (!qs) {
+                return { baseQs: undefined, startPage: 1 };
+            }
+            const baseQs = {};
+            let startPage = 1;
+            for (const [key, value] of Object.entries(qs)) {
+                if (key === 'page' || key === 'page[]') {
+                    const parsed = coerceNumber(value);
+                    if (parsed && parsed > 0) {
+                        startPage = parsed;
+                    }
+                }
+                else {
+                    baseQs[key] = value;
+                }
+            }
+            return { baseQs: Object.keys(baseQs).length ? baseQs : undefined, startPage };
+        };
+        const normalizePagedResponse = (response, currentPage) => {
+            if (Array.isArray(response)) {
+                return { items: response.map(toDataObject), hasMore: false };
+            }
+            if (response && typeof response === 'object') {
+                const responseObj = response;
+                const entries = Array.isArray(responseObj.entries)
+                    ? responseObj.entries
+                    : undefined;
+                if (entries) {
+                    const isLastPage = coerceBoolean(responseObj.isLastPage);
+                    const lastPageNumber = coerceNumber(responseObj.lastPageNumber ?? responseObj.lastPage);
+                    const totalsCount = coerceNumber(responseObj.totalsCount ?? responseObj.totalCount);
+                    const itemsPerPage = coerceNumber(responseObj.itemsPerPage ?? responseObj.perPage ?? entries.length);
+                    let hasMore = false;
+                    if (entries.length === 0) {
+                        hasMore = false;
+                    }
+                    else if (isLastPage !== undefined) {
+                        hasMore = !isLastPage;
+                    }
+                    else if (lastPageNumber !== undefined) {
+                        hasMore = currentPage < lastPageNumber;
+                    }
+                    else if (totalsCount !== undefined &&
+                        itemsPerPage !== undefined &&
+                        itemsPerPage > 0) {
+                        const maxPage = Math.ceil(totalsCount / itemsPerPage);
+                        hasMore = currentPage < maxPage;
+                    }
+                    return {
+                        items: entries.map(toDataObject),
+                        hasMore,
+                    };
+                }
+                return { items: [responseObj], hasMore: false };
+            }
+            return { items: [toDataObject(response)], hasMore: false };
+        };
+        const executeRequest = async (requestOptions, methodToUse, paginate) => {
+            const upperMethod = methodToUse.toUpperCase();
+            if (paginate && ['GET', 'HEAD'].includes(upperMethod)) {
+                const { baseQs, startPage } = extractPageFromQuery(requestOptions.qs);
+                const baseOptions = {
+                    ...requestOptions,
+                    qs: baseQs ? { ...baseQs } : undefined,
+                };
+                const aggregated = [];
+                let pageNumber = startPage;
+                const maxPages = 1000;
+                for (let iteration = 0; iteration < maxPages; iteration++) {
+                    const pageOptions = {
+                        ...baseOptions,
+                        qs: {
+                            ...(baseOptions.qs ?? {}),
+                            page: String(pageNumber),
+                        },
+                    };
+                    const response = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', pageOptions);
+                    const { items, hasMore } = normalizePagedResponse(response, pageNumber);
+                    aggregated.push(...items);
+                    if (!hasMore) {
+                        break;
+                    }
+                    if (iteration === maxPages - 1) {
+                        throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Pagination aborted after 1000 pages to prevent an infinite loop.');
+                    }
+                    pageNumber += 1;
+                }
+                return aggregated;
+            }
+            const response = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', requestOptions);
+            return [toDataObject(response)];
+        };
+        const pushResults = (items) => {
+            for (const item of items) {
+                returnData.push({ json: item });
+            }
+        };
         for (let i = 0; i < items.length; i++) {
             const resource = this.getNodeParameter('resource', i);
-            let method = 'GET';
-            let endpoint = '';
-            let body;
-            let queryParams;
             const operation = this.getNodeParameter('operation', i);
             if (resource === 'custom') {
                 const [, operationName] = operation.split('.');
-                if (operationName === 'customRequest') {
-                    method = this.getNodeParameter('method', i).toUpperCase();
-                    endpoint = this.getNodeParameter('endpoint', i);
-                    body = ensureObjectOrArray(this.getNodeParameter('bodyJson', i, {}), 'Payload / Query (JSON)');
-                }
-                else if (operationName === 'jsonDefinition') {
+                if (operationName === 'jsonDefinition') {
+                    const fetchAllPages = this.getNodeParameter('fetchAllPages', i, false);
                     const requestJsonRaw = this.getNodeParameter('requestJson', i, {});
                     const parsedRequestJson = parseJsonParameter(requestJsonRaw, 'Request Definition (JSON)');
                     if (parsedRequestJson === undefined ||
@@ -270,7 +390,7 @@ class Plentymarkets {
                         const reqMethod = (requestDef.method ?? 'GET').toUpperCase();
                         const reqEndpoint = requestDef.endpoint;
                         if (!reqEndpoint) {
-                            throw new Error('Endpoint is required in the request definition.');
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Endpoint is required in the request definition.');
                         }
                         const reqBody = ensureObjectOrArray(requestDef.body, 'body');
                         const reqQuery = ensureObject(requestDef.query, 'query');
@@ -301,40 +421,57 @@ class Plentymarkets {
                                 requestOptions.body = reqBody;
                             }
                         }
-                        const json = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', requestOptions);
-                        returnData.push({ json });
+                        const results = await executeRequest(requestOptions, reqMethod, fetchAllPages);
+                        pushResults(results);
                     }
                     continue;
                 }
-                else {
-                    throw new Error(`Unsupported custom operation: ${operationName}`);
-                }
-            }
-            else {
-                const [resName, opName] = operation.split('.');
-                const def = resourceDefinitions.find((r) => r.resource === resName);
-                const op = def?.operations.find((o) => o.value === opName);
-                if (!op)
-                    throw new Error(`Operation not found: ${operation}`);
-                method = op.method ?? 'GET';
-                endpoint = op.endpoint ?? '';
-                body = undefined;
-                queryParams = {};
-                if (op.parameters) {
-                    for (const param of op.parameters) {
-                        const val = this.getNodeParameter(param.name, i);
-                        if (endpoint.includes(`{{${param.name}}}`)) {
-                            endpoint = endpoint.replace(`{{${param.name}}}`, encodeURIComponent(String(val)));
+                if (operationName === 'customRequest') {
+                    const fetchAllPages = this.getNodeParameter('fetchAllPages', i, false);
+                    const method = this.getNodeParameter('method', i).toUpperCase();
+                    const endpoint = this.getNodeParameter('endpoint', i);
+                    const body = ensureObjectOrArray(this.getNodeParameter('bodyJson', i, {}), 'Payload / Query (JSON)');
+                    const requestOptions = {
+                        method: method,
+                        baseURL: baseUrl,
+                        url: endpoint,
+                        json: true,
+                    };
+                    if (hasBodyContent(body)) {
+                        if (['GET', 'HEAD'].includes(method)) {
+                            const bodyQuery = bodyToQueryParams(body);
+                            requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
                         }
                         else {
-                            if (val !== undefined &&
-                                val !== null &&
-                                val !== '' &&
-                                !(Array.isArray(val) && val.length === 0) &&
-                                !(typeof val === 'number' && val === 0 && param.default === 0)) {
-                                queryParams[param.name] = val;
-                            }
+                            requestOptions.body = body;
                         }
+                    }
+                    const results = await executeRequest(requestOptions, method, fetchAllPages);
+                    pushResults(results);
+                    continue;
+                }
+                throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Unsupported custom operation: ${operation}`);
+            }
+            const [resName, opName] = operation.split('.');
+            const resourceDefinition = resourceDefinitions.find((r) => r.resource === resName);
+            const operationDefinition = resourceDefinition?.operations.find((o) => o.value === opName);
+            if (!operationDefinition)
+                throw new Error(`Operation not found: ${operation}`);
+            const method = operationDefinition.method ?? 'GET';
+            let endpoint = operationDefinition.endpoint ?? '';
+            const queryParams = {};
+            if (operationDefinition.parameters) {
+                for (const param of operationDefinition.parameters) {
+                    const val = this.getNodeParameter(param.name, i);
+                    if (endpoint.includes(`{{${param.name}}}`)) {
+                        endpoint = endpoint.replace(`{{${param.name}}}`, encodeURIComponent(String(val)));
+                    }
+                    else if (val !== undefined &&
+                        val !== null &&
+                        val !== '' &&
+                        !(Array.isArray(val) && val.length === 0) &&
+                        !(typeof val === 'number' && val === 0 && param.default === 0)) {
+                        queryParams[param.name] = val;
                     }
                 }
             }
@@ -344,20 +481,11 @@ class Plentymarkets {
                 url: endpoint,
                 json: true,
             };
-            if (queryParams && Object.keys(queryParams).length) {
+            if (Object.keys(queryParams).length) {
                 requestOptions.qs = queryParams;
             }
-            if (hasBodyContent(body)) {
-                if (['GET', 'HEAD'].includes(method)) {
-                    const bodyQuery = bodyToQueryParams(body);
-                    requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
-                }
-                else {
-                    requestOptions.body = body;
-                }
-            }
-            const json = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', requestOptions);
-            returnData.push({ json });
+            const results = await executeRequest(requestOptions, method, false);
+            pushResults(results);
         }
         return this.prepareOutputData(returnData);
     }
