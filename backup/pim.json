@@ -1,0 +1,346 @@
+{
+  "resource": "pim",
+  "displayName": "PIM",
+  "operations": [
+    {
+      "name": "List Variations",
+      "value": "listVariations",
+      "method": "GET",
+      "endpoint": "/rest/pim/variations",
+      "description": "Lists variations including the specified related data",
+      "parameters": [
+        {
+          "displayName": "With",
+          "name": "with",
+          "type": "multiOptions",
+          "default": [],
+          "description": "Includes the specified related data in the results"
+        },
+        {
+          "displayName": "Sortby",
+          "name": "sortBy",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Groupby",
+          "name": "groupBy",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Query",
+          "name": "query",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Ids",
+          "name": "ids",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Itemid",
+          "name": "itemId",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Itemids",
+          "name": "itemIds",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Isactive",
+          "name": "isActive",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "displayName": "Ismain",
+          "name": "isMain",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "displayName": "Issalable",
+          "name": "isSalable",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "displayName": "Supplierid",
+          "name": "supplierId",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Availabilityids",
+          "name": "availabilityIds",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Haschildren",
+          "name": "hasChildren",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "displayName": "Hasactivechildren",
+          "name": "hasActiveChildren",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "displayName": "Attributeid",
+          "name": "attributeId",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Anyattributeid",
+          "name": "anyAttributeId",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Allattributeids",
+          "name": "allAttributeIds",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Attributevalueid",
+          "name": "attributeValueId",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Anyattributevalueid",
+          "name": "anyAttributeValueId",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Allattributevalueids",
+          "name": "allAttributeValueIds",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Barcodecode",
+          "name": "barcodeCode",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Barcodeid",
+          "name": "barcodeId",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Bundletype",
+          "name": "bundleType",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Categoryid",
+          "name": "categoryId",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Anycategoryid",
+          "name": "anyCategoryId",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Allcategoryids",
+          "name": "allCategoryIds",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Clientid",
+          "name": "clientId",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Anyclientid",
+          "name": "anyClientId",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Allclientids",
+          "name": "allClientIds",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Flag1",
+          "name": "flag1",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Flag2",
+          "name": "flag2",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Manufacturerid",
+          "name": "manufacturerId",
+          "type": "number",
+          "default": false
+        },
+        {
+          "displayName": "Number",
+          "name": "number",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Model",
+          "name": "model",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Supplieritemnumber",
+          "name": "supplierItemNumber",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Lang",
+          "name": "lang",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Createdat",
+          "name": "createdAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Updatedat",
+          "name": "updatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Itemcreatedat",
+          "name": "itemCreatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Itemupdatedat",
+          "name": "itemUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Availabilityupdatedat",
+          "name": "availabilityUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Stockupdatedat",
+          "name": "stockUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Barcodeupdatedat",
+          "name": "barcodeUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Categoryupdatedat",
+          "name": "categoryUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Clientupdatedat",
+          "name": "clientUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Marketupdatedat",
+          "name": "marketUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Propertyupdatedat",
+          "name": "propertyUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Salespriceupdatedat",
+          "name": "salesPriceUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Supplierupdatedat",
+          "name": "supplierUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Tagupdatedat",
+          "name": "tagUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Warehouseupdatedat",
+          "name": "warehouseUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Relatedupdatedat",
+          "name": "relatedUpdatedAt",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Page",
+          "name": "page",
+          "type": "number",
+          "default": 1
+        },
+        {
+          "displayName": "Itemsperpage",
+          "name": "itemsPerPage",
+          "type": "number",
+          "default": 50
+        },
+        {
+          "displayName": "Haslowestprice",
+          "name": "hasLowestPrice",
+          "type": "boolean",
+          "default": false
+        }
+      ]
+    }
+  ]
+}

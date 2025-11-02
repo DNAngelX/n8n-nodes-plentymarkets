@@ -1,0 +1,121 @@
+{
+  "resource": "order",
+  "displayName": "Order",
+  "operations": [
+    {
+      "name": "Get Order by ID",
+      "value": "getSingleOrder",
+      "method": "GET",
+      "endpoint": "/rest/orders/{{orderId}}",
+      "parameters": [
+        {
+          "displayName": "Order ID",
+          "name": "orderId",
+          "type": "string",
+          "default": "",
+          "required": true
+        },
+        {
+          "displayName": "With",
+          "name": "with",
+          "type": "multiOptions",
+          "options": [
+            { "name": "addresses", "value": "addresses" },
+            { "name": "relations", "value": "relations" },
+            { "name": "comments", "value": "comments" },
+            { "name": "location", "value": "location" },
+            { "name": "payments", "value": "payments" },
+            { "name": "documents", "value": "documents" },
+            { "name": "contactSender", "value": "contactSender" },
+            { "name": "contactReceiver", "value": "contactReceiver" },
+            { "name": "warehouseSender", "value": "warehouseSender" },
+            { "name": "warehouseReceiver", "value": "warehouseReceiver" },
+            { "name": "orderItems.variation", "value": "orderItems.variation" },
+            { "name": "orderItems.variation.propertiesV2", "value": "orderItems.variation.propertiesV2" },
+            { "name": "orderItems.giftCardCodes", "value": "orderItems.giftCardCodes" },
+            { "name": "orderItems.transactions", "value": "orderItems.transactions" },
+            { "name": "orderItems.serialNumbers", "value": "orderItems.serialNumbers" },
+            { "name": "orderItems.variationBarcodes", "value": "orderItems.variationBarcodes" },
+            { "name": "orderItems.comments", "value": "orderItems.comments" },
+            { "name": "originOrderReferences", "value": "originOrderReferences" },
+            { "name": "shippingPackages", "value": "shippingPackages" },
+            { "name": "shippingPackages.items", "value": "shippingPackages.items" },
+            { "name": "shippingInformation", "value": "shippingInformation" },
+            { "name": "paymentTerms", "value": "paymentTerms" }
+          ],
+          "default": [],
+          "description": "Optionale Relationen, die mitgeladen werden sollen"
+        }
+      ]
+    },
+    {
+      "name": "Get Orders (filtered)",
+      "value": "getManyOrders",
+      "method": "GET",
+      "endpoint": "/rest/orders",
+      "parameters": [
+        {
+          "displayName": "Order IDs (comma-separated)",
+          "name": "orderIds",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Contact ID",
+          "name": "contactId",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "displayName": "Referrer ID",
+          "name": "referrerId",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "displayName": "Updated At From",
+          "name": "updatedAtFrom",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "Updated At To",
+          "name": "updatedAtTo",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "displayName": "With",
+          "name": "with",
+          "type": "multiOptions",
+          "options": [
+            { "name": "addresses", "value": "addresses" },
+            { "name": "relations", "value": "relations" },
+            { "name": "comments", "value": "comments" },
+            { "name": "location", "value": "location" },
+            { "name": "payments", "value": "payments" },
+            { "name": "documents", "value": "documents" },
+            { "name": "contactSender", "value": "contactSender" },
+            { "name": "contactReceiver", "value": "contactReceiver" },
+            { "name": "warehouseSender", "value": "warehouseSender" },
+            { "name": "warehouseReceiver", "value": "warehouseReceiver" },
+            { "name": "orderItems.variation", "value": "orderItems.variation" },
+            { "name": "orderItems.variation.propertiesV2", "value": "orderItems.variation.propertiesV2" },
+            { "name": "orderItems.giftCardCodes", "value": "orderItems.giftCardCodes" },
+            { "name": "orderItems.transactions", "value": "orderItems.transactions" },
+            { "name": "orderItems.serialNumbers", "value": "orderItems.serialNumbers" },
+            { "name": "orderItems.variationBarcodes", "value": "orderItems.variationBarcodes" },
+            { "name": "orderItems.comments", "value": "orderItems.comments" },
+            { "name": "originOrderReferences", "value": "originOrderReferences" },
+            { "name": "shippingPackages", "value": "shippingPackages" },
+            { "name": "shippingPackages.items", "value": "shippingPackages.items" },
+            { "name": "shippingInformation", "value": "shippingInformation" },
+            { "name": "paymentTerms", "value": "paymentTerms" }
+          ],
+          "default": [],
+          "description": "Optionale Relationen, die mitgeladen werden sollen"
+        }
+      ]
+    }
+  ]
+}

@@ -1,46 +1,105 @@
-![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
+# PlentyONE n8n Community Node
 
-# n8n-nodes-starter
+Interact with the PlentyONE (formerly plentymarkets) REST API directly from your n8n workflows.
+This community node focuses on dynamic request handling so you can cover both well-known endpoints
+and ad-hoc API calls without waiting for custom code changes.
 
-This repo contains example nodes to help you get started building your own custom integrations for [n8n](n8n.io). It includes the node linter and other dependencies.
+## Highlights
 
-To make your custom node available to the community, you must create it as an npm package, and [submit it to the npm registry](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry).
+- ✅ Automatic session handling via n8n `preAuthentication` – the access token is cached and refreshed only when needed.
+- ✅ Classic *Custom Request* operation with support for sending payloads **even on GET/HEAD** calls (body → query parameters).
+- ✅ New *Request via JSON Definition* operation to paste or inject complete request descriptions, e.g.:
 
-## Prerequisites
-
-You need the following installed on your development machine:
-
-* [git](https://git-scm.com/downloads)
-* Node.js and pnpm. Minimum version Node 18. You can find instructions on how to install both using nvm (Node Version Manager) for Linux, Mac, and WSL [here](https://github.com/nvm-sh/nvm). For Windows users, refer to Microsoft's guide to [Install NodeJS on Windows](https://docs.microsoft.com/en-us/windows/dev-environment/javascript/nodejs-on-windows).
-* Install n8n with:
+  ```json
+  {
+    "method": "GET",
+    "endpoint": "/rest/v2/properties/relations",
+    "body": {
+      "with": "values",
+      "groupId": 44,
+      "propertyId": 394,
+      "type": "item",
+      "targetId": 99211
+    }
+  }
   ```
-  pnpm install n8n -g
-  ```
-* Recommended: follow n8n's guide to [set up your development environment](https://docs.n8n.io/integrations/creating-nodes/build/node-development-environment/).
 
-## Using this starter
+  Arrays are supported as well – just provide a JSON array of request objects to execute them sequentially in one run.
 
-These are the basic steps for working with the starter. For detailed guidance on creating and publishing nodes, refer to the [documentation](https://docs.n8n.io/integrations/creating-nodes/).
+- ✅ Local PlentyONE icon bundled with the node for easier identification inside n8n.
 
-1. [Generate a new repository](https://github.com/n8n-io/n8n-nodes-starter/generate) from this template repository.
-2. Clone your new repo:
-   ```
-   git clone https://github.com/<your organization>/<your-repo-name>.git
-   ```
-3. Run `pnpm i` to install dependencies.
-4. Open the project in your editor.
-5. Browse the examples in `/nodes` and `/credentials`. Modify the examples, or replace them with your own nodes.
-6. Update the `package.json` to match your details.
-7. Run `pnpm lint` to check for errors or `pnpm lintfix` to automatically fix errors when possible.
-8. Test your node locally. Refer to [Run your node locally](https://docs.n8n.io/integrations/creating-nodes/test/run-node-locally/) for guidance.
-9. Replace this README with documentation for your node. Use the [README_TEMPLATE](README_TEMPLATE.md) to get started.
-10. Update the LICENSE file to use your details.
-11. [Publish](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry) your package to npm.
+## Installation
 
-## More information
+Install the package inside your n8n instance (desktop, self-hosted or cloud with custom packages enabled):
 
-Refer to our [documentation on creating nodes](https://docs.n8n.io/integrations/creating-nodes/) for detailed information on building your own nodes.
+```bash
+npm install n8n-nodes-plentyone
+```
 
-## License
+Restart n8n afterwards so the node metadata is reloaded.
 
-[MIT](https://github.com/n8n-io/n8n-nodes-starter/blob/master/LICENSE.md)
+> **Compatibility:** The internal node type stays `n8n-nodes-plentymarkets.Plentymarkets`
+> so existing workflows continue to work after upgrading from older releases.
+
+## Credentials
+
+Create a new credential record of type **PlentyONE API** and fill in:
+
+| Field        | Description                                                                 |
+|--------------|-----------------------------------------------------------------------------|
+| Base URL     | Base URL of your PlentyONE environment (e.g. `https://example.plentyone.de`) |
+| Username     | PlentyONE username used for API login                                       |
+| Password     | Corresponding password                                                      |
+
+The node stores the access token invisibly and refreshes it automatically before expiry.  
+No external Redis/filesystem cache is required, so the credential works in hosted/cloud setups too.
+
+## Operations
+
+### Custom Request
+
+Configure the HTTP method and endpoint in the node UI. The “Payload / Query (JSON)” parameter accepts a JSON object:
+
+- For `GET`/`HEAD` requests the object is sent as query parameters.
+- For all other methods the object is sent as JSON body.
+
+### Request via JSON Definition
+
+Provide a JSON object (or array of objects) with the following optional fields:
+
+| Field    | Type            | Notes                                                                 |
+|----------|-----------------|-----------------------------------------------------------------------|
+| `method` | string          | Defaults to `GET`.                                                    |
+| `endpoint` | string       | Required.                                                             |
+| `body`   | object          | Used as JSON body (or merged into query for GET/HEAD).                |
+| `query`  | object          | Explicit query string parameters.                                     |
+| `headers` | object        | Custom headers added to the request.                                   |
+
+Example payload for a PUT request:
+
+```json
+{
+  "method": "PUT",
+  "endpoint": "/rest/listings/markets/histories/update/",
+  "body": {
+    "id": [959893, 919078],
+    "options": ["quantityAndPrice"]
+  }
+}
+```
+
+## Development
+
+```bash
+npm install
+npm run build
+```
+
+`npm run build` compiles TypeScript and copies the PlentyONE icon plus operation schema into `dist/`.
+
+## Licensing & Credits
+
+- Icon: © PlentyONE — included locally as `plentyone.svg` according to the branding assets.
+- Code: MIT License.
+
+Pull requests and issue reports are welcome!

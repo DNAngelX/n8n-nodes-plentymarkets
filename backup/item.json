@@ -1,0 +1,75 @@
+{
+    "resource": "itemVariation",
+    "displayName": "Item Variation",
+    "operations": [
+      {
+        "name": "Search Variations",
+        "value": "getManyItemVariations",
+        "method": "GET",
+        "endpoint": "/rest/items/variations",
+        "parameters": [
+          {
+            "displayName": "With",
+            "name": "with",
+            "type": "multiOptions",
+            "options": [
+              { "name": "properties", "value": "properties" },
+              { "name": "variationProperties", "value": "variationProperties" },
+              { "name": "variationBarcodes", "value": "variationBarcodes" },
+              { "name": "variationBundleComponents", "value": "variationBundleComponents" },
+              { "name": "variationComponentBundles", "value": "variationComponentBundles" },
+              { "name": "variationSalesPrices", "value": "variationSalesPrices" },
+              { "name": "marketItemNumbers", "value": "marketItemNumbers" },
+              { "name": "variationCategories", "value": "variationCategories" },
+              { "name": "variationClients", "value": "variationClients" },
+              { "name": "variationMarkets", "value": "variationMarkets" },
+              { "name": "variationDefaultCategory", "value": "variationDefaultCategory" },
+              { "name": "variationSuppliers", "value": "variationSuppliers" },
+              { "name": "variationWarehouses", "value": "variationWarehouses" },
+              { "name": "images", "value": "images" },
+              { "name": "itemImages", "value": "itemImages" },
+              { "name": "variationAttributeValues", "value": "variationAttributeValues" },
+              { "name": "variationSkus", "value": "variationSkus" },
+              { "name": "variationAdditionalSkus", "value": "variationAdditionalSkus" },
+              { "name": "unit", "value": "unit" },
+              { "name": "parent", "value": "parent" },
+              { "name": "item", "value": "item" },
+              { "name": "stock", "value": "stock" }
+            ],
+            "default": [],
+            "description": "Includes the specified variation information in the results."
+          },
+          { "displayName": "Language", "name": "lang", "type": "string", "default": "" },
+          { "displayName": "Page", "name": "page", "type": "number", "default": 1 },
+          { "displayName": "Items Per Page", "name": "itemsPerPage", "type": "number", "default": 50 },
+          { "displayName": "Variation ID(s)", "name": "id", "type": "string", "default": "" },
+          { "displayName": "Item ID(s)", "name": "itemId", "type": "string", "default": "" },
+          { "displayName": "Variation Tag ID(s)", "name": "variationTagId", "type": "string", "default": "" },
+          { "displayName": "Item Name", "name": "itemName", "type": "string", "default": "" },
+          { "displayName": "Flag One", "name": "flagOne", "type": "string", "default": "" },
+          { "displayName": "Flag Two", "name": "flagTwo", "type": "string", "default": "" },
+          { "displayName": "Store Special", "name": "storeSpecial", "type": "number", "default": 0 },
+          { "displayName": "Category ID", "name": "categoryId", "type": "number", "default": 0 },
+          { "displayName": "Is Main", "name": "isMain", "type": "boolean", "default": false },
+          { "displayName": "Is Active", "name": "isActive", "type": "boolean", "default": false },
+          { "displayName": "Barcode", "name": "barcode", "type": "string", "default": "" },
+          { "displayName": "Number Exact", "name": "numberExact", "type": "string", "default": "" },
+          { "displayName": "Number Fuzzy", "name": "numberFuzzy", "type": "string", "default": "" },
+          { "displayName": "Is Bundle", "name": "isBundle", "type": "boolean", "default": false },
+          { "displayName": "Plenty ID(s)", "name": "plentyId", "type": "string", "default": "" },
+          { "displayName": "Referrer ID(s)", "name": "referrerId", "type": "string", "default": "" },
+          { "displayName": "Supplier Number", "name": "supplierNumber", "type": "string", "default": "" },
+          { "displayName": "Supplier Number Fuzzy", "name": "supplierNumberFuzzy", "type": "string", "default": "" },
+          { "displayName": "SKU", "name": "sku", "type": "string", "default": "" },
+          { "displayName": "Manufacturer ID", "name": "manufacturerId", "type": "number", "default": 0 },
+          { "displayName": "Updated Between", "name": "updatedBetween", "type": "string", "default": "", "description": "Format: UNIX timestamp or ISO8601 (from,to)" },
+          { "displayName": "Created Between", "name": "createdBetween", "type": "string", "default": "", "description": "Format: UNIX timestamp or ISO8601 (from,to)" },
+          { "displayName": "Related Updated Between", "name": "relatedUpdatedBetween", "type": "string", "default": "", "description": "Format: UNIX timestamp or ISO8601 (from,to)" },
+          { "displayName": "Item Description", "name": "itemDescription", "type": "string", "default": "" },
+          { "displayName": "Stock Warehouse ID", "name": "stockWarehouseId", "type": "string", "default": "" },
+          { "displayName": "Supplier ID", "name": "supplierId", "type": "number", "default": 0 }
+        ]
+      }
+    ]
+  }
+  

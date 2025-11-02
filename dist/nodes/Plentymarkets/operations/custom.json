@@ -1,0 +1,57 @@
+{
+  "resource": "custom",
+  "displayName": "Custom API Call",
+  "operations": [
+    {
+      "name": "Custom Request",
+      "value": "customRequest",
+      "description": "Sende einen beliebigen HTTP-Request",
+      "method": "GET",
+      "endpoint": "{{endpoint}}",
+      "parameters": [
+        {
+          "displayName": "HTTP-Methode",
+          "name": "method",
+          "type": "options",
+          "options": [
+            { "name": "GET", "value": "GET" },
+            { "name": "POST", "value": "POST" },
+            { "name": "PUT", "value": "PUT" },
+            { "name": "PATCH", "value": "PATCH" },
+            { "name": "DELETE", "value": "DELETE" }
+          ],
+          "default": "GET"
+        },
+        {
+          "displayName": "Endpoint",
+          "name": "endpoint",
+          "type": "string",
+          "default": "/rest/orders"
+        },
+        {
+          "displayName": "Payload / Query (JSON)",
+          "name": "bodyJson",
+          "type": "json",
+          "default": "{}",
+          "description": "Bei GET/HEAD als Query-Parameter gesendet, sonst als JSON-Body"
+        }
+      ]
+    },
+    {
+      "name": "Request via JSON Definition",
+      "value": "jsonDefinition",
+      "description": "Nutze eine komplette JSON-Definition für die Anfrage",
+      "method": "GET",
+      "endpoint": "{{endpoint}}",
+      "parameters": [
+        {
+          "displayName": "Request Definition (JSON)",
+          "name": "requestJson",
+          "type": "json",
+          "default": "{}",
+          "description": "Felder: method, endpoint, body, query, headers. Optional auch ein Array mehrerer Requests."
+        }
+      ]
+    }
+  ]
+}
