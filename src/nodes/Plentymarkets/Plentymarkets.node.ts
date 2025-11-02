@@ -8,6 +8,7 @@ import {
 	IHttpRequestOptions,
 	IDataObject,
 	IHttpRequestMethods,
+	NodeOperationError,
 } from 'n8n-workflow';
 
 import * as fs from 'fs';
@@ -127,22 +128,74 @@ export class Plentymarkets implements INodeType {
 		const returnData = [];
 		const credentials = await this.getCredentials('plentymarketsApi');
 		const baseUrl = ((credentials.baseUrl as string) || '').replace(/\/+$/, '');
-		const normalizeDataObject = (value: unknown): IDataObject => {
-			if (value === null || value === undefined) {
-				return {};
+
+		const parseJsonParameter = (value: unknown, fieldName: string): unknown => {
+			if (value === null || value === undefined || value === '') {
+				return undefined;
 			}
-			if (typeof value === 'object') {
-				return value as IDataObject;
+			if (typeof value === 'string') {
+				const trimmed = value.trim();
+				if (!trimmed) {
+					return undefined;
+				}
+				try {
+					return JSON.parse(trimmed);
+				} catch (error) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Invalid JSON provided for "${fieldName}": ${
+							(error as Error).message ?? error
+						}`,
+					);
+				}
 			}
-			return {};
+			return value;
+		};
+
+		const ensureObject = (value: unknown, fieldName: string): IDataObject | undefined => {
+			const parsed = parseJsonParameter(value, fieldName);
+			if (parsed === undefined) {
+				return undefined;
+			}
+			if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+				return parsed as IDataObject;
+			}
+			throw new NodeOperationError(this.getNode(), `"${fieldName}" must be a JSON object.`);
+		};
+
+		const ensureObjectOrArray = (
+			value: unknown,
+			fieldName: string,
+		): IDataObject | IDataObject[] | undefined => {
+			const parsed = parseJsonParameter(value, fieldName);
+			if (parsed === undefined) {
+				return undefined;
+			}
+			if (typeof parsed === 'object' && parsed !== null) {
+				return parsed as IDataObject | IDataObject[];
+			}
+			throw new NodeOperationError(
+				this.getNode(),
+				`"${fieldName}" must be a JSON object or array.`,
+			);
+		};
+
+		const hasBodyContent = (value: IDataObject | IDataObject[] | undefined): boolean => {
+			if (value === undefined) {
+				return false;
+			}
+			if (Array.isArray(value)) {
+				return value.length > 0;
+			}
+			return Object.keys(value).length > 0;
 		};
 
 		for (let i = 0; i < items.length; i++) {
 			const resource = this.getNodeParameter('resource', i) as string;
 			let method = 'GET';
 			let endpoint = '';
-			let body: IDataObject = {};
-			let queryParams: IDataObject = {};
+			let body: IDataObject | IDataObject[] | undefined;
+			let queryParams: IDataObject | undefined;
 			const operation = this.getNodeParameter('operation', i) as string;
 		
 			if (resource === 'custom') {
@@ -151,22 +204,44 @@ export class Plentymarkets implements INodeType {
 				if (operationName === 'customRequest') {
 					method = (this.getNodeParameter('method', i) as string).toUpperCase();
 					endpoint = this.getNodeParameter('endpoint', i) as string;
-					body = normalizeDataObject(this.getNodeParameter('bodyJson', i, {}));
+					body = ensureObjectOrArray(
+						this.getNodeParameter('bodyJson', i, {}),
+						'Payload / Query (JSON)',
+					);
 				} else if (operationName === 'jsonDefinition') {
-					const requestJson = this.getNodeParameter('requestJson', i, {}) as IDataObject | IDataObject[];
-					const requests = Array.isArray(requestJson) ? requestJson : [requestJson];
+					const requestJsonRaw = this.getNodeParameter('requestJson', i, {}) as unknown;
+					const parsedRequestJson = parseJsonParameter(
+						requestJsonRaw,
+						'Request Definition (JSON)',
+					);
+
+					if (
+						parsedRequestJson === undefined ||
+						(typeof parsedRequestJson !== 'object' && !Array.isArray(parsedRequestJson))
+					) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'Request definition must be a JSON object or array.',
+						);
+					}
+
+					const requests = Array.isArray(parsedRequestJson)
+						? (parsedRequestJson as IDataObject[])
+						: [parsedRequestJson as IDataObject];
 
 					for (const requestDef of requests) {
-						const reqMethod = ((requestDef.method as string) ?? 'GET').toUpperCase();
-						const reqEndpoint = (requestDef.endpoint as string) ?? '';
+						const reqMethod = (
+							(requestDef.method as string | undefined) ?? 'GET'
+						).toUpperCase();
+						const reqEndpoint = requestDef.endpoint as string | undefined;
 
 						if (!reqEndpoint) {
 							throw new Error('Endpoint is required in the request definition.');
 						}
 
-						const reqBody = normalizeDataObject(requestDef.body);
-						const reqQuery = normalizeDataObject(requestDef.query);
-						const reqHeaders = normalizeDataObject(requestDef.headers);
+						const reqBody = ensureObjectOrArray(requestDef.body, 'body');
+						const reqQuery = ensureObject(requestDef.query, 'query');
+						const reqHeaders = ensureObject(requestDef.headers, 'headers');
 
 						const requestOptions: IHttpRequestOptions = {
 							method: reqMethod as IHttpRequestMethods,
@@ -188,15 +263,8 @@ export class Plentymarkets implements INodeType {
 							requestOptions.qs = reqQuery;
 						}
 
-						if (reqBody && Object.keys(reqBody).length) {
-							if (['GET', 'HEAD'].includes(reqMethod)) {
-								requestOptions.qs = {
-									...(requestOptions.qs ?? {}),
-									...reqBody,
-								};
-							} else {
-								requestOptions.body = reqBody;
-							}
+						if (hasBodyContent(reqBody)) {
+							requestOptions.body = reqBody;
 						}
 
 						const json = await this.helpers.httpRequestWithAuthentication.call(
@@ -219,7 +287,7 @@ export class Plentymarkets implements INodeType {
 				if (!op) throw new Error(`Operation not found: ${operation}`);
 				method = op.method ?? 'GET';
 				endpoint = op.endpoint ?? '';
-				body = {};
+				body = undefined;
 				queryParams = {};
 		
 				if (op.parameters) {
@@ -249,19 +317,12 @@ export class Plentymarkets implements INodeType {
 				json: true,
 			};
 		
-			if (Object.keys(queryParams).length) {
+			if (queryParams && Object.keys(queryParams).length) {
 				requestOptions.qs = queryParams;
 			}
 		
-			if (body && Object.keys(body).length > 0) {
-				if (['GET', 'HEAD'].includes(method)) {
-					requestOptions.qs = {
-						...(requestOptions.qs ?? {}),
-						...body,
-					};
-				} else {
-					requestOptions.body = body;
-				}
+			if (hasBodyContent(body)) {
+				requestOptions.body = body;
 			}
 		
 			const json = await this.helpers.httpRequestWithAuthentication.call(

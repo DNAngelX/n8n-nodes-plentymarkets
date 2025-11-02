@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Plentymarkets = void 0;
+const n8n_workflow_1 = require("n8n-workflow");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const operationsDir = path.join(__dirname, 'operations');
@@ -128,41 +129,86 @@ class Plentymarkets {
         const returnData = [];
         const credentials = await this.getCredentials('plentymarketsApi');
         const baseUrl = (credentials.baseUrl || '').replace(/\/+$/, '');
-        const normalizeDataObject = (value) => {
-            if (value === null || value === undefined) {
-                return {};
+        const parseJsonParameter = (value, fieldName) => {
+            if (value === null || value === undefined || value === '') {
+                return undefined;
             }
-            if (typeof value === 'object') {
-                return value;
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                if (!trimmed) {
+                    return undefined;
+                }
+                try {
+                    return JSON.parse(trimmed);
+                }
+                catch (error) {
+                    throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON provided for "${fieldName}": ${error.message ?? error}`);
+                }
             }
-            return {};
+            return value;
+        };
+        const ensureObject = (value, fieldName) => {
+            const parsed = parseJsonParameter(value, fieldName);
+            if (parsed === undefined) {
+                return undefined;
+            }
+            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                return parsed;
+            }
+            throw new n8n_workflow_1.NodeOperationError(this.getNode(), `"${fieldName}" must be a JSON object.`);
+        };
+        const ensureObjectOrArray = (value, fieldName) => {
+            const parsed = parseJsonParameter(value, fieldName);
+            if (parsed === undefined) {
+                return undefined;
+            }
+            if (typeof parsed === 'object' && parsed !== null) {
+                return parsed;
+            }
+            throw new n8n_workflow_1.NodeOperationError(this.getNode(), `"${fieldName}" must be a JSON object or array.`);
+        };
+        const hasBodyContent = (value) => {
+            if (value === undefined) {
+                return false;
+            }
+            if (Array.isArray(value)) {
+                return value.length > 0;
+            }
+            return Object.keys(value).length > 0;
         };
         for (let i = 0; i < items.length; i++) {
             const resource = this.getNodeParameter('resource', i);
             let method = 'GET';
             let endpoint = '';
-            let body = {};
-            let queryParams = {};
+            let body;
+            let queryParams;
             const operation = this.getNodeParameter('operation', i);
             if (resource === 'custom') {
                 const [, operationName] = operation.split('.');
                 if (operationName === 'customRequest') {
                     method = this.getNodeParameter('method', i).toUpperCase();
                     endpoint = this.getNodeParameter('endpoint', i);
-                    body = normalizeDataObject(this.getNodeParameter('bodyJson', i, {}));
+                    body = ensureObjectOrArray(this.getNodeParameter('bodyJson', i, {}), 'Payload / Query (JSON)');
                 }
                 else if (operationName === 'jsonDefinition') {
-                    const requestJson = this.getNodeParameter('requestJson', i, {});
-                    const requests = Array.isArray(requestJson) ? requestJson : [requestJson];
+                    const requestJsonRaw = this.getNodeParameter('requestJson', i, {});
+                    const parsedRequestJson = parseJsonParameter(requestJsonRaw, 'Request Definition (JSON)');
+                    if (parsedRequestJson === undefined ||
+                        (typeof parsedRequestJson !== 'object' && !Array.isArray(parsedRequestJson))) {
+                        throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Request definition must be a JSON object or array.');
+                    }
+                    const requests = Array.isArray(parsedRequestJson)
+                        ? parsedRequestJson
+                        : [parsedRequestJson];
                     for (const requestDef of requests) {
                         const reqMethod = (requestDef.method ?? 'GET').toUpperCase();
-                        const reqEndpoint = requestDef.endpoint ?? '';
+                        const reqEndpoint = requestDef.endpoint;
                         if (!reqEndpoint) {
                             throw new Error('Endpoint is required in the request definition.');
                         }
-                        const reqBody = normalizeDataObject(requestDef.body);
-                        const reqQuery = normalizeDataObject(requestDef.query);
-                        const reqHeaders = normalizeDataObject(requestDef.headers);
+                        const reqBody = ensureObjectOrArray(requestDef.body, 'body');
+                        const reqQuery = ensureObject(requestDef.query, 'query');
+                        const reqHeaders = ensureObject(requestDef.headers, 'headers');
                         const requestOptions = {
                             method: reqMethod,
                             baseURL: baseUrl,
@@ -180,16 +226,8 @@ class Plentymarkets {
                         if (reqQuery && Object.keys(reqQuery).length) {
                             requestOptions.qs = reqQuery;
                         }
-                        if (reqBody && Object.keys(reqBody).length) {
-                            if (['GET', 'HEAD'].includes(reqMethod)) {
-                                requestOptions.qs = {
-                                    ...(requestOptions.qs ?? {}),
-                                    ...reqBody,
-                                };
-                            }
-                            else {
-                                requestOptions.body = reqBody;
-                            }
+                        if (hasBodyContent(reqBody)) {
+                            requestOptions.body = reqBody;
                         }
                         const json = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', requestOptions);
                         returnData.push({ json });
@@ -208,7 +246,7 @@ class Plentymarkets {
                     throw new Error(`Operation not found: ${operation}`);
                 method = op.method ?? 'GET';
                 endpoint = op.endpoint ?? '';
-                body = {};
+                body = undefined;
                 queryParams = {};
                 if (op.parameters) {
                     for (const param of op.parameters) {
@@ -234,19 +272,11 @@ class Plentymarkets {
                 url: endpoint,
                 json: true,
             };
-            if (Object.keys(queryParams).length) {
+            if (queryParams && Object.keys(queryParams).length) {
                 requestOptions.qs = queryParams;
             }
-            if (body && Object.keys(body).length > 0) {
-                if (['GET', 'HEAD'].includes(method)) {
-                    requestOptions.qs = {
-                        ...(requestOptions.qs ?? {}),
-                        ...body,
-                    };
-                }
-                else {
-                    requestOptions.body = body;
-                }
+            if (hasBodyContent(body)) {
+                requestOptions.body = body;
             }
             const json = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', requestOptions);
             returnData.push({ json });
