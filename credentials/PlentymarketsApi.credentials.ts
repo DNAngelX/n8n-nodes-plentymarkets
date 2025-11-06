@@ -5,6 +5,7 @@ import {
 	IHttpRequestHelper,
 	IDataObject,
 	Icon,
+	ICredentialTestRequest,
 } from 'n8n-workflow';
 
 export class PlentymarketsApi implements ICredentialType {
@@ -63,6 +64,19 @@ export class PlentymarketsApi implements ICredentialType {
 			headers: {
 				Authorization: '=Bearer {{$credentials.accessToken}}',
 			},
+		},
+	};
+
+	test: ICredentialTestRequest = {
+		request: {
+			method: 'POST',
+			baseURL: '={{$credentials.baseUrl.replace(new RegExp("/+$"), "")}}',
+			url: '/rest/login',
+			body: {
+				username: '={{$credentials.username}}',
+				password: '={{$credentials.password}}',
+			},
+			json: true,
 		},
 	};
 

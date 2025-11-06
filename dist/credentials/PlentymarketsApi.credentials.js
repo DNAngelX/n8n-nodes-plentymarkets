@@ -58,6 +58,18 @@ class PlentymarketsApi {
                 },
             },
         };
+        this.test = {
+            request: {
+                method: 'POST',
+                baseURL: '={{$credentials.baseUrl.replace(new RegExp("/+$"), "")}}',
+                url: '/rest/login',
+                body: {
+                    username: '={{$credentials.username}}',
+                    password: '={{$credentials.password}}',
+                },
+                json: true,
+            },
+        };
     }
     async preAuthentication(credentials) {
         const accessToken = credentials.accessToken;
