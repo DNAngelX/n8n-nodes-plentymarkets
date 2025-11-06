@@ -106,5 +106,3 @@ npm run build
 
 - Icon: © PlentyONE — included locally as `plentyone.svg` according to the branding assets.
 - Code: MIT License.
-
-Pull requests and issue reports are welcome!

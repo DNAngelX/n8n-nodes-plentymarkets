@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "build": "tsc && npm run copy-assets",
-    "copy-assets": "bash -lc 'set -euo pipefail; mkdir -p dist/nodes/Plentymarkets/operations dist/credentials; cp src/nodes/Plentymarkets/operations/*.json dist/nodes/Plentymarkets/operations/; cp src/nodes/Plentymarkets/plentyone.svg dist/nodes/Plentymarkets/; cp src/nodes/Plentymarkets/plentyone.svg dist/credentials/'"
+    "copy-assets": "bash -lc 'set -euo pipefail; mkdir -p dist/nodes/Plentymarkets/operations dist/credentials; cp nodes/Plentymarkets/operations/*.json dist/nodes/Plentymarkets/operations/; cp nodes/Plentymarkets/plentyone.svg dist/nodes/Plentymarkets/; cp nodes/Plentymarkets/plentyone.svg dist/credentials/'"
   },
   "n8n": {
     "nodes": [
