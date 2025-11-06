@@ -12,8 +12,7 @@ import {
 	NodeOperationError,
 } from 'n8n-workflow';
 
-import * as fs from 'fs';
-import * as path from 'path';
+import customResource from './operations/custom.json';
 
 interface OperationDefinition {
 	name: string;
@@ -30,20 +29,7 @@ interface ResourceDefinition {
 	operations: OperationDefinition[];
 }
 
-const operationsDir = path.join(__dirname, 'operations');
-const resourceFiles = fs.readdirSync(operationsDir).filter(f => f.endsWith('.json'));
-
-const seenResources = new Set<string>();
-const resourceDefinitions: ResourceDefinition[] = [];
-
-for (const file of resourceFiles) {
-	const content = fs.readFileSync(path.join(operationsDir, file), 'utf-8');
-	const definition = JSON.parse(content);
-	if (!seenResources.has(definition.resource)) {
-		resourceDefinitions.push(definition);
-		seenResources.add(definition.resource);
-	}
-}
+const resourceDefinitions: ResourceDefinition[] = [customResource as ResourceDefinition];
 
 const resourceOptions: INodePropertyOptions[] = resourceDefinitions.map((r) => ({
 	name: r.displayName,
