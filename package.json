@@ -1,7 +1,15 @@
 {
   "name": "n8n-nodes-plentyone",
-  "version": "1.2.3",
+  "version": "1.2.2",
   "description": "n8n community node for the PlentyONE (formerly plentymarkets) REST API",
+  "homepage": "https://github.com/DNAngelX/n8n-nodes-plentymarkets#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DNAngelX/n8n-nodes-plentymarkets.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DNAngelX/n8n-nodes-plentymarkets/issues"
+  },
   "main": "dist/index.js",
   "files": [
     "dist"
