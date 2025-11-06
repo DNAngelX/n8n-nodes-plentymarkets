@@ -416,6 +416,7 @@ class Plentymarkets {
                             if (['GET', 'HEAD'].includes(reqMethod)) {
                                 const bodyQuery = bodyToQueryParams(reqBody);
                                 requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
+                                requestOptions.arrayFormat = 'repeat';
                             }
                             else {
                                 requestOptions.body = reqBody;
@@ -441,6 +442,7 @@ class Plentymarkets {
                         if (['GET', 'HEAD'].includes(method)) {
                             const bodyQuery = bodyToQueryParams(body);
                             requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
+                            requestOptions.arrayFormat = 'repeat';
                         }
                         else {
                             requestOptions.body = body;

@@ -519,6 +519,7 @@ export class Plentymarkets implements INodeType {
 							if (['GET', 'HEAD'].includes(reqMethod)) {
 								const bodyQuery = bodyToQueryParams(reqBody as IDataObject);
 								requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
+								requestOptions.arrayFormat = 'repeat';
 							} else {
 								requestOptions.body = reqBody as IDataObject | IDataObject[];
 							}
@@ -551,6 +552,7 @@ export class Plentymarkets implements INodeType {
 						if (['GET', 'HEAD'].includes(method)) {
 							const bodyQuery = bodyToQueryParams(body as IDataObject);
 							requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
+							requestOptions.arrayFormat = 'repeat';
 						} else {
 							requestOptions.body = body as IDataObject | IDataObject[];
 						}
