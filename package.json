@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-plentyone",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "n8n community node for the PlentyONE (formerly plentymarkets) REST API",
   "main": "dist/index.js",
   "files": [
@@ -18,7 +18,11 @@
       "dist/credentials/PlentymarketsApi.credentials.js"
     ]
   },
-  "author": "DNAngelX",
+  "author": {
+    "name": "Jan Stoll (DNAngelX)",
+    "email": "stolly82@gmail.com",
+    "url": "https://github.com/DNAngelX"
+  },
   "license": "MIT",
   "keywords": [
     "n8n",
