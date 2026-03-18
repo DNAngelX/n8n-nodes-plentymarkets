@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-plentyone",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "n8n community node for the PlentyONE (formerly plentymarkets) REST API",
   "homepage": "https://github.com/DNAngelX/n8n-nodes-plentymarkets#readme",
   "repository": {
@@ -38,6 +38,9 @@
     "n8n-community-node",
     "n8n-community-node-package"
   ],
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
   "devDependencies": {
     "n8n-core": "^1.14.1",
     "n8n-workflow": "^1.82.0",

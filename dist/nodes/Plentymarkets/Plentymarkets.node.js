@@ -139,6 +139,7 @@ class Plentymarkets {
             name: 'Plentymarkets',
             group: ['transform'],
             version: 1,
+            icon: 'file:plentyone.svg',
             description: 'Work with the PlentyONE (formerly plentymarkets) REST API',
             defaults: {
                 name: 'PlentyONE',
@@ -323,12 +324,6 @@ class Plentymarkets {
             }
             return { baseQs: Object.keys(baseQs).length ? baseQs : undefined, startPage };
         };
-        const wait = async (milliseconds) => {
-            if (milliseconds <= 0) {
-                return;
-            }
-            await new Promise((resolve) => setTimeout(resolve, milliseconds));
-        };
         const toHeaderMap = (headers) => {
             if (!headers || typeof headers !== 'object') {
                 return {};
@@ -427,7 +422,7 @@ class Plentymarkets {
         const waitForRateLimitIfNeeded = async () => {
             const now = Date.now();
             if (nextRequestAllowedAtMs > now) {
-                await wait(nextRequestAllowedAtMs - now);
+                await (0, n8n_workflow_1.sleep)(nextRequestAllowedAtMs - now);
             }
         };
         const requestWithRateLimitHandling = async (requestOptions) => {

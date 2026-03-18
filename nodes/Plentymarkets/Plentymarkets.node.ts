@@ -10,6 +10,7 @@ import {
 	IHttpRequestMethods,
 	INodeExecutionData,
 	NodeOperationError,
+	sleep,
 } from 'n8n-workflow';
 
 const customResource: ResourceDefinition = {
@@ -169,6 +170,7 @@ export class Plentymarkets implements INodeType {
 		name: 'Plentymarkets',
 		group: ['transform'],
 		version: 1,
+		icon: 'file:plentyone.svg',
 		description: 'Work with the PlentyONE (formerly plentymarkets) REST API',
 		defaults: {
 			name: 'PlentyONE',
@@ -390,13 +392,6 @@ export class Plentymarkets implements INodeType {
 			return { baseQs: Object.keys(baseQs).length ? baseQs : undefined, startPage };
 		};
 
-		const wait = async (milliseconds: number): Promise<void> => {
-			if (milliseconds <= 0) {
-				return;
-			}
-			await new Promise((resolve) => setTimeout(resolve, milliseconds));
-		};
-
 		const toHeaderMap = (headers: unknown): Record<string, string> => {
 			if (!headers || typeof headers !== 'object') {
 				return {};
@@ -523,7 +518,7 @@ export class Plentymarkets implements INodeType {
 		const waitForRateLimitIfNeeded = async (): Promise<void> => {
 			const now = Date.now();
 			if (nextRequestAllowedAtMs > now) {
-				await wait(nextRequestAllowedAtMs - now);
+				await sleep(nextRequestAllowedAtMs - now);
 			}
 		};
 
