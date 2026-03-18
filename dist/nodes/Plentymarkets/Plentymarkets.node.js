@@ -609,8 +609,9 @@ class Plentymarkets {
                 const [resName, opName] = operation.split('.');
                 const resourceDefinition = resourceDefinitions.find((r) => r.resource === resName);
                 const operationDefinition = resourceDefinition === null || resourceDefinition === void 0 ? void 0 : resourceDefinition.operations.find((o) => o.value === opName);
-                if (!operationDefinition)
-                    throw new Error(`Operation not found: ${operation}`);
+                if (!operationDefinition) {
+                    throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Operation not found: ${operation}`);
+                }
                 const method = (_b = operationDefinition.method) !== null && _b !== void 0 ? _b : 'GET';
                 let endpoint = (_c = operationDefinition.endpoint) !== null && _c !== void 0 ? _c : '';
                 const queryParams = {};

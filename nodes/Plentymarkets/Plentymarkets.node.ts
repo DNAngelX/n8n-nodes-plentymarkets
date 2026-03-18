@@ -783,7 +783,9 @@ export class Plentymarkets implements INodeType {
 				const [resName, opName] = operation.split('.');
 				const resourceDefinition = resourceDefinitions.find((r) => r.resource === resName);
 				const operationDefinition = resourceDefinition?.operations.find((o) => o.value === opName);
-				if (!operationDefinition) throw new Error(`Operation not found: ${operation}`);
+				if (!operationDefinition) {
+					throw new NodeOperationError(this.getNode(), `Operation not found: ${operation}`);
+				}
 
 				const method = operationDefinition.method ?? 'GET';
 				let endpoint = operationDefinition.endpoint ?? '';
