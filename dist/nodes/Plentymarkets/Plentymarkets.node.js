@@ -1,12 +1,84 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Plentymarkets = void 0;
 const n8n_workflow_1 = require("n8n-workflow");
-const custom_json_1 = __importDefault(require("./operations/custom.json"));
-const resourceDefinitions = [custom_json_1.default];
+const customResource = {
+    resource: 'custom',
+    displayName: 'Custom API Call',
+    operations: [
+        {
+            name: 'Custom Request',
+            value: 'customRequest',
+            description: 'Send a custom HTTP request',
+            method: 'GET',
+            endpoint: '{{endpoint}}',
+            parameters: [
+                {
+                    displayName: 'HTTP Method',
+                    name: 'method',
+                    type: 'options',
+                    options: [
+                        { name: 'GET', value: 'GET' },
+                        { name: 'POST', value: 'POST' },
+                        { name: 'PUT', value: 'PUT' },
+                        { name: 'PATCH', value: 'PATCH' },
+                        { name: 'DELETE', value: 'DELETE' },
+                    ],
+                    default: 'GET',
+                },
+                {
+                    displayName: 'Endpoint',
+                    name: 'endpoint',
+                    type: 'string',
+                    default: '/rest/orders',
+                },
+                {
+                    displayName: 'Payload / Query (JSON)',
+                    name: 'bodyJson',
+                    type: 'json',
+                    default: '{}',
+                    description: 'For GET/HEAD requests, sends as query parameters; otherwise sends as JSON body',
+                },
+                {
+                    displayName: 'Fetch All Pages',
+                    name: 'fetchAllPages',
+                    type: 'boolean',
+                    default: false,
+                    description: 'Automatically paginate GET responses until the last page is reached',
+                    displayOptions: {
+                        show: {
+                            method: ['GET'],
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            name: 'Request via JSON Definition',
+            value: 'jsonDefinition',
+            description: 'Provide a full JSON definition for the request',
+            method: 'GET',
+            endpoint: '{{endpoint}}',
+            parameters: [
+                {
+                    displayName: 'Request Definition (JSON)',
+                    name: 'requestJson',
+                    type: 'json',
+                    default: '{}',
+                    description: 'Fields: method, endpoint, body, query, headers. You can also pass an array of requests.',
+                },
+                {
+                    displayName: 'Fetch All Pages',
+                    name: 'fetchAllPages',
+                    type: 'boolean',
+                    default: false,
+                    description: 'Automatically paginate GET responses until the last page is reached.',
+                },
+            ],
+        },
+    ],
+};
+const resourceDefinitions = [customResource];
 const resourceOptions = resourceDefinitions.map((r) => ({
     name: r.displayName,
     value: r.resource,
@@ -35,12 +107,13 @@ const allProperties = [
 const operationOptions = new Set();
 resourceDefinitions.forEach((def) => {
     def.operations.forEach((op) => {
+        var _a;
         const value = `${def.resource}.${op.value}`;
         if (!operationOptions.has(value)) {
             allProperties.find((p) => p.name === 'operation').options.push({
                 name: op.name,
                 value,
-                description: op.description ?? '',
+                description: (_a = op.description) !== null && _a !== void 0 ? _a : '',
             });
             operationOptions.add(value);
         }
@@ -72,7 +145,6 @@ class Plentymarkets {
             },
             inputs: ['main'],
             outputs: ['main'],
-            icon: 'file:plentyone.svg',
             credentials: [
                 {
                     name: 'plentymarketsApi',
@@ -83,11 +155,13 @@ class Plentymarkets {
         };
     }
     async execute() {
+        var _a, _b, _c;
         const items = this.getInputData();
         const returnData = [];
         const credentials = await this.getCredentials('plentymarketsApi');
         const baseUrl = (credentials.baseUrl || '').replace(/\/+$/, '');
         const parseJsonParameter = (value, fieldName) => {
+            var _a;
             if (value === null || value === undefined || value === '') {
                 return undefined;
             }
@@ -100,7 +174,7 @@ class Plentymarkets {
                     return JSON.parse(trimmed);
                 }
                 catch (error) {
-                    throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON provided for "${fieldName}": ${error.message ?? error}`);
+                    throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid JSON provided for "${fieldName}": ${(_a = error.message) !== null && _a !== void 0 ? _a : error}`);
                 }
             }
             return value;
@@ -202,7 +276,7 @@ class Plentymarkets {
         };
         const toDataObject = (value) => typeof value === 'object' && value !== null
             ? value
-            : { value: String(value ?? '') };
+            : { value: String(value !== null && value !== void 0 ? value : '') };
         const coerceNumber = (value) => {
             if (value === null || value === undefined) {
                 return undefined;
@@ -249,7 +323,130 @@ class Plentymarkets {
             }
             return { baseQs: Object.keys(baseQs).length ? baseQs : undefined, startPage };
         };
+        const wait = async (milliseconds) => {
+            if (milliseconds <= 0) {
+                return;
+            }
+            await new Promise((resolve) => setTimeout(resolve, milliseconds));
+        };
+        const toHeaderMap = (headers) => {
+            if (!headers || typeof headers !== 'object') {
+                return {};
+            }
+            const map = {};
+            for (const [key, value] of Object.entries(headers)) {
+                if (value === undefined || value === null) {
+                    continue;
+                }
+                const normalizedKey = key.toLowerCase();
+                map[normalizedKey] = Array.isArray(value)
+                    ? value.map((item) => String(item)).join(',')
+                    : String(value);
+            }
+            return map;
+        };
+        const parseNumberHeader = (value) => {
+            if (!value) {
+                return undefined;
+            }
+            const parsed = Number(value.trim());
+            return Number.isFinite(parsed) ? parsed : undefined;
+        };
+        const parseRetryAfterMs = (value) => {
+            if (!value) {
+                return undefined;
+            }
+            const numeric = Number(value.trim());
+            if (Number.isFinite(numeric)) {
+                return Math.max(0, Math.ceil(numeric * 1000));
+            }
+            const retryAt = Date.parse(value);
+            if (Number.isNaN(retryAt)) {
+                return undefined;
+            }
+            return Math.max(0, retryAt - Date.now());
+        };
+        const parseResetTimestampMs = (value) => {
+            if (!value) {
+                return undefined;
+            }
+            const numeric = Number(value.trim());
+            if (Number.isFinite(numeric)) {
+                // Plenty sends timestamps in seconds for `Calls-Reset`.
+                const timestampMs = numeric > 1000000000000 ? numeric : numeric * 1000;
+                return Math.max(0, timestampMs - Date.now());
+            }
+            const parsedDate = Date.parse(value);
+            if (Number.isNaN(parsedDate)) {
+                return undefined;
+            }
+            return Math.max(0, parsedDate - Date.now());
+        };
+        const parseDecayMs = (value) => {
+            const seconds = parseNumberHeader(value);
+            if (seconds === undefined) {
+                return undefined;
+            }
+            return Math.max(0, Math.ceil(seconds * 1000));
+        };
+        const computeRateLimitWaitMs = (headers) => {
+            var _a, _b, _c, _d;
+            let waitMs = 0;
+            const retryAfterMs = parseRetryAfterMs(headers['retry-after']);
+            if (retryAfterMs !== undefined) {
+                waitMs = Math.max(waitMs, retryAfterMs);
+            }
+            for (const [key, rawValue] of Object.entries(headers)) {
+                if (!key.endsWith('-calls-left')) {
+                    continue;
+                }
+                const callsLeft = parseNumberHeader(rawValue);
+                if (callsLeft === undefined || callsLeft > 0) {
+                    continue;
+                }
+                const prefix = key.slice(0, -'-calls-left'.length);
+                const resetMs = parseResetTimestampMs(headers[`${prefix}-calls-reset`]);
+                const decayMs = parseDecayMs(headers[`${prefix}-decay`]);
+                if (resetMs !== undefined) {
+                    waitMs = Math.max(waitMs, resetMs);
+                }
+                else if (decayMs !== undefined) {
+                    waitMs = Math.max(waitMs, decayMs);
+                }
+            }
+            const genericRemaining = parseNumberHeader((_b = (_a = headers['x-ratelimit-remaining']) !== null && _a !== void 0 ? _a : headers['x-rate-limit-remaining']) !== null && _b !== void 0 ? _b : headers['ratelimit-remaining']);
+            if (genericRemaining !== undefined && genericRemaining <= 0) {
+                const resetMs = parseResetTimestampMs((_d = (_c = headers['x-ratelimit-reset']) !== null && _c !== void 0 ? _c : headers['x-rate-limit-reset']) !== null && _d !== void 0 ? _d : headers['ratelimit-reset']);
+                if (resetMs !== undefined) {
+                    waitMs = Math.max(waitMs, resetMs);
+                }
+            }
+            return waitMs;
+        };
+        let nextRequestAllowedAtMs = 0;
+        const waitForRateLimitIfNeeded = async () => {
+            const now = Date.now();
+            if (nextRequestAllowedAtMs > now) {
+                await wait(nextRequestAllowedAtMs - now);
+            }
+        };
+        const requestWithRateLimitHandling = async (requestOptions) => {
+            await waitForRateLimitIfNeeded();
+            const response = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', {
+                ...requestOptions,
+                returnFullResponse: true,
+            });
+            const fullResponse = response;
+            const headers = toHeaderMap(fullResponse.headers);
+            const waitMs = computeRateLimitWaitMs(headers);
+            if (waitMs > 0) {
+                // Small buffer prevents edge cases when reset timestamps are rounded.
+                nextRequestAllowedAtMs = Date.now() + waitMs + 100;
+            }
+            return fullResponse.body;
+        };
         const normalizePagedResponse = (response, currentPage) => {
+            var _a, _b, _c, _d;
             if (Array.isArray(response)) {
                 return { items: response.map(toDataObject), hasMore: false };
             }
@@ -260,9 +457,9 @@ class Plentymarkets {
                     : undefined;
                 if (entries) {
                     const isLastPage = coerceBoolean(responseObj.isLastPage);
-                    const lastPageNumber = coerceNumber(responseObj.lastPageNumber ?? responseObj.lastPage);
-                    const totalsCount = coerceNumber(responseObj.totalsCount ?? responseObj.totalCount);
-                    const itemsPerPage = coerceNumber(responseObj.itemsPerPage ?? responseObj.perPage ?? entries.length);
+                    const lastPageNumber = coerceNumber((_a = responseObj.lastPageNumber) !== null && _a !== void 0 ? _a : responseObj.lastPage);
+                    const totalsCount = coerceNumber((_b = responseObj.totalsCount) !== null && _b !== void 0 ? _b : responseObj.totalCount);
+                    const itemsPerPage = coerceNumber((_d = (_c = responseObj.itemsPerPage) !== null && _c !== void 0 ? _c : responseObj.perPage) !== null && _d !== void 0 ? _d : entries.length);
                     let hasMore = false;
                     if (entries.length === 0) {
                         hasMore = false;
@@ -289,6 +486,7 @@ class Plentymarkets {
             return { items: [toDataObject(response)], hasMore: false };
         };
         const executeRequest = async (requestOptions, methodToUse, paginate) => {
+            var _a;
             const upperMethod = methodToUse.toUpperCase();
             if (paginate && ['GET', 'HEAD'].includes(upperMethod)) {
                 const { baseQs, startPage } = extractPageFromQuery(requestOptions.qs);
@@ -303,11 +501,11 @@ class Plentymarkets {
                     const pageOptions = {
                         ...baseOptions,
                         qs: {
-                            ...(baseOptions.qs ?? {}),
+                            ...((_a = baseOptions.qs) !== null && _a !== void 0 ? _a : {}),
                             page: String(pageNumber),
                         },
                     };
-                    const response = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', pageOptions);
+                    const response = await requestWithRateLimitHandling(pageOptions);
                     const { items, hasMore } = normalizePagedResponse(response, pageNumber);
                     aggregated.push(...items);
                     if (!hasMore) {
@@ -320,134 +518,150 @@ class Plentymarkets {
                 }
                 return aggregated;
             }
-            const response = await this.helpers.httpRequestWithAuthentication.call(this, 'plentymarketsApi', requestOptions);
+            const response = await requestWithRateLimitHandling(requestOptions);
             return [toDataObject(response)];
         };
-        const pushResults = (items) => {
+        const pushResults = (items, itemIndex) => {
             for (const item of items) {
-                returnData.push({ json: item });
+                returnData.push({ json: item, pairedItem: { item: itemIndex } });
             }
         };
         for (let i = 0; i < items.length; i++) {
-            const resource = this.getNodeParameter('resource', i);
-            const operation = this.getNodeParameter('operation', i);
-            if (resource === 'custom') {
-                const [, operationName] = operation.split('.');
-                if (operationName === 'jsonDefinition') {
-                    const fetchAllPages = this.getNodeParameter('fetchAllPages', i, false);
-                    const requestJsonRaw = this.getNodeParameter('requestJson', i, {});
-                    const parsedRequestJson = parseJsonParameter(requestJsonRaw, 'Request Definition (JSON)');
-                    if (parsedRequestJson === undefined ||
-                        (typeof parsedRequestJson !== 'object' && !Array.isArray(parsedRequestJson))) {
-                        throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Request definition must be a JSON object or array.');
-                    }
-                    const requests = Array.isArray(parsedRequestJson)
-                        ? parsedRequestJson
-                        : [parsedRequestJson];
-                    for (const requestDef of requests) {
-                        const reqMethod = (requestDef.method ?? 'GET').toUpperCase();
-                        const reqEndpoint = requestDef.endpoint;
-                        if (!reqEndpoint) {
-                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Endpoint is required in the request definition.');
+            try {
+                const resource = this.getNodeParameter('resource', i);
+                const operation = this.getNodeParameter('operation', i);
+                if (resource === 'custom') {
+                    const [, operationName] = operation.split('.');
+                    if (operationName === 'jsonDefinition') {
+                        const fetchAllPages = this.getNodeParameter('fetchAllPages', i, false);
+                        const requestJsonRaw = this.getNodeParameter('requestJson', i, {});
+                        const parsedRequestJson = parseJsonParameter(requestJsonRaw, 'Request Definition (JSON)');
+                        if (parsedRequestJson === undefined ||
+                            (typeof parsedRequestJson !== 'object' && !Array.isArray(parsedRequestJson))) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Request definition must be a JSON object or array.');
                         }
-                        const reqBody = ensureObjectOrArray(requestDef.body, 'body');
-                        const reqQuery = ensureObject(requestDef.query, 'query');
-                        const reqHeaders = ensureObject(requestDef.headers, 'headers');
-                        const requestOptions = {
-                            method: reqMethod,
-                            baseURL: baseUrl,
-                            url: reqEndpoint,
-                            json: true,
-                        };
-                        if (reqHeaders && Object.keys(reqHeaders).length) {
-                            requestOptions.headers = {};
-                            for (const [key, value] of Object.entries(reqHeaders)) {
-                                if (value !== undefined && value !== null) {
-                                    requestOptions.headers[key] = String(value);
+                        const requests = Array.isArray(parsedRequestJson)
+                            ? parsedRequestJson
+                            : [parsedRequestJson];
+                        for (const requestDef of requests) {
+                            const reqMethod = ((_a = requestDef.method) !== null && _a !== void 0 ? _a : 'GET').toUpperCase();
+                            const reqEndpoint = requestDef.endpoint;
+                            if (!reqEndpoint) {
+                                throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Endpoint is required in the request definition.');
+                            }
+                            const reqBody = ensureObjectOrArray(requestDef.body, 'body');
+                            const reqQuery = ensureObject(requestDef.query, 'query');
+                            const reqHeaders = ensureObject(requestDef.headers, 'headers');
+                            const requestOptions = {
+                                method: reqMethod,
+                                baseURL: baseUrl,
+                                url: reqEndpoint,
+                                json: true,
+                            };
+                            if (reqHeaders && Object.keys(reqHeaders).length) {
+                                requestOptions.headers = {};
+                                for (const [key, value] of Object.entries(reqHeaders)) {
+                                    if (value !== undefined && value !== null) {
+                                        requestOptions.headers[key] = String(value);
+                                    }
                                 }
                             }
+                            if (reqQuery && Object.keys(reqQuery).length) {
+                                requestOptions.qs = reqQuery;
+                            }
+                            if (hasBodyContent(reqBody)) {
+                                if (['GET', 'HEAD'].includes(reqMethod)) {
+                                    const bodyQuery = bodyToQueryParams(reqBody);
+                                    requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
+                                    requestOptions.arrayFormat = 'repeat';
+                                }
+                                else {
+                                    requestOptions.body = reqBody;
+                                }
+                            }
+                            const results = await executeRequest(requestOptions, reqMethod, fetchAllPages);
+                            pushResults(results, i);
                         }
-                        if (reqQuery && Object.keys(reqQuery).length) {
-                            requestOptions.qs = reqQuery;
-                        }
-                        if (hasBodyContent(reqBody)) {
-                            if (['GET', 'HEAD'].includes(reqMethod)) {
-                                const bodyQuery = bodyToQueryParams(reqBody);
+                        continue;
+                    }
+                    if (operationName === 'customRequest') {
+                        const fetchAllPages = this.getNodeParameter('fetchAllPages', i, false);
+                        const method = this.getNodeParameter('method', i).toUpperCase();
+                        const endpoint = this.getNodeParameter('endpoint', i);
+                        const body = ensureObjectOrArray(this.getNodeParameter('bodyJson', i, {}), 'Payload / Query (JSON)');
+                        const requestOptions = {
+                            method: method,
+                            baseURL: baseUrl,
+                            url: endpoint,
+                            json: true,
+                        };
+                        if (hasBodyContent(body)) {
+                            if (['GET', 'HEAD'].includes(method)) {
+                                const bodyQuery = bodyToQueryParams(body);
                                 requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
                                 requestOptions.arrayFormat = 'repeat';
                             }
                             else {
-                                requestOptions.body = reqBody;
+                                requestOptions.body = body;
                             }
                         }
-                        const results = await executeRequest(requestOptions, reqMethod, fetchAllPages);
-                        pushResults(results);
+                        const results = await executeRequest(requestOptions, method, fetchAllPages);
+                        pushResults(results, i);
+                        continue;
                     }
+                    throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Unsupported custom operation: ${operation}`);
+                }
+                const [resName, opName] = operation.split('.');
+                const resourceDefinition = resourceDefinitions.find((r) => r.resource === resName);
+                const operationDefinition = resourceDefinition === null || resourceDefinition === void 0 ? void 0 : resourceDefinition.operations.find((o) => o.value === opName);
+                if (!operationDefinition)
+                    throw new Error(`Operation not found: ${operation}`);
+                const method = (_b = operationDefinition.method) !== null && _b !== void 0 ? _b : 'GET';
+                let endpoint = (_c = operationDefinition.endpoint) !== null && _c !== void 0 ? _c : '';
+                const queryParams = {};
+                if (operationDefinition.parameters) {
+                    for (const param of operationDefinition.parameters) {
+                        const val = this.getNodeParameter(param.name, i);
+                        if (endpoint.includes(`{{${param.name}}}`)) {
+                            endpoint = endpoint.replace(`{{${param.name}}}`, encodeURIComponent(String(val)));
+                        }
+                        else if (val !== undefined &&
+                            val !== null &&
+                            val !== '' &&
+                            !(Array.isArray(val) && val.length === 0) &&
+                            !(typeof val === 'number' && val === 0 && param.default === 0)) {
+                            queryParams[param.name] = val;
+                        }
+                    }
+                }
+                const requestOptions = {
+                    method: method,
+                    baseURL: baseUrl,
+                    url: endpoint,
+                    json: true,
+                };
+                if (Object.keys(queryParams).length) {
+                    requestOptions.qs = queryParams;
+                }
+                const results = await executeRequest(requestOptions, method, false);
+                pushResults(results, i);
+            }
+            catch (error) {
+                if (this.continueOnFail()) {
+                    returnData.push({
+                        json: { error: error.message },
+                        pairedItem: { item: i },
+                    });
                     continue;
                 }
-                if (operationName === 'customRequest') {
-                    const fetchAllPages = this.getNodeParameter('fetchAllPages', i, false);
-                    const method = this.getNodeParameter('method', i).toUpperCase();
-                    const endpoint = this.getNodeParameter('endpoint', i);
-                    const body = ensureObjectOrArray(this.getNodeParameter('bodyJson', i, {}), 'Payload / Query (JSON)');
-                    const requestOptions = {
-                        method: method,
-                        baseURL: baseUrl,
-                        url: endpoint,
-                        json: true,
-                    };
-                    if (hasBodyContent(body)) {
-                        if (['GET', 'HEAD'].includes(method)) {
-                            const bodyQuery = bodyToQueryParams(body);
-                            requestOptions.qs = mergeQueryObjects(requestOptions.qs, bodyQuery);
-                            requestOptions.arrayFormat = 'repeat';
-                        }
-                        else {
-                            requestOptions.body = body;
-                        }
-                    }
-                    const results = await executeRequest(requestOptions, method, fetchAllPages);
-                    pushResults(results);
-                    continue;
+                if (error instanceof n8n_workflow_1.NodeOperationError) {
+                    throw error;
                 }
-                throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Unsupported custom operation: ${operation}`);
+                throw new n8n_workflow_1.NodeOperationError(this.getNode(), error);
             }
-            const [resName, opName] = operation.split('.');
-            const resourceDefinition = resourceDefinitions.find((r) => r.resource === resName);
-            const operationDefinition = resourceDefinition?.operations.find((o) => o.value === opName);
-            if (!operationDefinition)
-                throw new Error(`Operation not found: ${operation}`);
-            const method = operationDefinition.method ?? 'GET';
-            let endpoint = operationDefinition.endpoint ?? '';
-            const queryParams = {};
-            if (operationDefinition.parameters) {
-                for (const param of operationDefinition.parameters) {
-                    const val = this.getNodeParameter(param.name, i);
-                    if (endpoint.includes(`{{${param.name}}}`)) {
-                        endpoint = endpoint.replace(`{{${param.name}}}`, encodeURIComponent(String(val)));
-                    }
-                    else if (val !== undefined &&
-                        val !== null &&
-                        val !== '' &&
-                        !(Array.isArray(val) && val.length === 0) &&
-                        !(typeof val === 'number' && val === 0 && param.default === 0)) {
-                        queryParams[param.name] = val;
-                    }
-                }
-            }
-            const requestOptions = {
-                method: method,
-                baseURL: baseUrl,
-                url: endpoint,
-                json: true,
-            };
-            if (Object.keys(queryParams).length) {
-                requestOptions.qs = queryParams;
-            }
-            const results = await executeRequest(requestOptions, method, false);
-            pushResults(results);
         }
         return this.prepareOutputData(returnData);
     }
 }
 exports.Plentymarkets = Plentymarkets;
+//# sourceMappingURL=Plentymarkets.node.js.map

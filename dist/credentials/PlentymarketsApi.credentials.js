@@ -5,7 +5,6 @@ class PlentymarketsApi {
     constructor() {
         this.name = 'plentymarketsApi';
         this.displayName = 'PlentyONE API';
-        this.icon = 'file:plentyone.svg';
         this.documentationUrl = 'https://developers.plentymarkets.com/';
         this.properties = [
             {
@@ -72,6 +71,7 @@ class PlentymarketsApi {
         };
     }
     async preAuthentication(credentials) {
+        var _a;
         const accessToken = credentials.accessToken;
         const expiresAtRaw = credentials.expiresAt;
         const expiresAt = typeof expiresAtRaw === 'number'
@@ -97,7 +97,7 @@ class PlentymarketsApi {
             },
             json: true,
         }));
-        const expiresIn = Number(response.expiresIn ?? 0);
+        const expiresIn = Number((_a = response.expiresIn) !== null && _a !== void 0 ? _a : 0);
         const calculatedExpiresAt = expiresIn > 0 ? now + Math.max(0, expiresIn - 60) * 1000 : now;
         return {
             accessToken: response.accessToken,
@@ -106,3 +106,4 @@ class PlentymarketsApi {
     }
 }
 exports.PlentymarketsApi = PlentymarketsApi;
+//# sourceMappingURL=PlentymarketsApi.credentials.js.map

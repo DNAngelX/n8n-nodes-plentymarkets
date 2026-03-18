@@ -1,0 +1,19 @@
+{
+  "name": "plentymarkets",
+  "displayName": "PlentyONE",
+  "group": ["transform"],
+  "version": 1,
+  "description": "Work with the PlentyONE (formerly plentymarkets) REST API",
+  "defaults": {
+    "name": "PlentyONE"
+  },
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "credentials": [
+    {
+      "name": "plentymarketsApi",
+      "required": true
+    }
+  ],
+  "properties": []
+}
