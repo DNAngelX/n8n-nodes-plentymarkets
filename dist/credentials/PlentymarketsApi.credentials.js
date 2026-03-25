@@ -6,6 +6,7 @@ class PlentymarketsApi {
         this.name = 'plentymarketsApi';
         this.displayName = 'PlentyONE API';
         this.documentationUrl = 'https://developers.plentymarkets.com/';
+        this.icon = 'file:plentyone.svg';
         this.properties = [
             {
                 displayName: 'Base URL',

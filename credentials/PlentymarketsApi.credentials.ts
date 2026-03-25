@@ -12,6 +12,7 @@ export class PlentymarketsApi implements ICredentialType {
 	name = 'plentymarketsApi';
 	displayName = 'PlentyONE API';
 	documentationUrl = 'https://developers.plentymarkets.com/';
+	icon: Icon = 'file:plentyone.svg';
 
 	properties: INodeProperties[] = [
 		{
